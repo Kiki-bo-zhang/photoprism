@@ -129,6 +129,29 @@ func TestMatchFaceMarkers(t *testing.T) {
 	}
 }
 
+func TestMatchFaceMarkers_ReturnsUpdateError(t *testing.T) {
+	t.Cleanup(func() {
+		require.NoError(t, entity.Db().Migrator().RenameTable("broken", entity.Marker{}.TableName()))
+	})
+	require.NoError(t, entity.Db().Migrator().RenameTable(entity.Marker{}.TableName(), "broken"))
+
+	log.Info("Expect Table Missing error")
+	affected, err := MatchFaceMarkers()
+	require.Error(t, err)
+	assert.Equal(t, int64(0), affected)
+	switch DbDialect() {
+	case entity.MySQL:
+		assert.Contains(t, err.Error(), "Table")
+		assert.Contains(t, err.Error(), "doesn't exist")
+	case entity.Postgres:
+		assert.Contains(t, err.Error(), "relation")
+		assert.Contains(t, err.Error(), "does not exist")
+	case entity.SQLite3:
+		assert.Contains(t, err.Error(), "no such table")
+	}
+	assert.Contains(t, err.Error(), entity.Marker{}.TableName())
+}
+
 func TestRemoveAnonymousFaceClusters(t *testing.T) {
 	removed, err := RemoveAnonymousFaceClusters()
 

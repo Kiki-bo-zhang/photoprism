@@ -54,11 +54,11 @@ func TestAddPhotoToAlbums(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		photo_updatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
-		album_updatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
+		photoUpdatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
+		albumUpdatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
 
 		assert.Truef(
-			t, photo_updatedAt <= album_updatedAt,
+			t, photoUpdatedAt <= albumUpdatedAt,
 			"Expected the UpdatedAt field of an album to be updated when"+
 				" new photos are added",
 		)
@@ -105,11 +105,11 @@ func TestAddPhotoToAlbums(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		photo_updatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
-		album_updatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
+		photoUpdatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
+		albumUpdatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
 
 		assert.Truef(
-			t, photo_updatedAt <= album_updatedAt,
+			t, photoUpdatedAt <= albumUpdatedAt,
 			"Expected the UpdatedAt field of an album to be updated when"+
 				" new photos are added",
 		)
@@ -148,11 +148,11 @@ func TestAddPhotoToUserAlbums(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		photo_updatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
-		album_updatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
+		photoUpdatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
+		albumUpdatedAt := strings.Split(album.UpdatedAt.String(), ".")[0]
 
 		assert.Truef(
-			t, photo_updatedAt <= album_updatedAt,
+			t, photoUpdatedAt <= albumUpdatedAt,
 			"Expected the UpdatedAt field of an album to be updated when"+
 				" new photos are added",
 		)
@@ -455,6 +455,56 @@ func TestFindFolderAlbum(t *testing.T) {
 		if album != nil {
 			t.Fatal("album should be nil")
 		}
+	})
+	t.Run("PathBeatsSlugCollision", func(t *testing.T) {
+		parentPath := "emoji-collision-parent-" + txt.Slug(time.Now().UTC().Format(time.RFC3339Nano))
+		childPath := parentPath + "/🍷"
+		parentFilter := `path:"` + parentPath + `" public:true`
+
+		parent := NewFolderAlbum("Parent", parentPath, parentFilter)
+		if parent == nil {
+			t.Fatal("expected parent album")
+		}
+
+		if err := parent.Create(); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Cleanup(func() {
+			_ = parent.DeletePermanently()
+		})
+
+		album := FindFolderAlbum(childPath)
+		assert.Nil(t, album)
+	})
+	t.Run("LegacyFallbackForEmptyPath", func(t *testing.T) {
+		parentPath := "emoji-collision-legacy-" + txt.Slug(time.Now().UTC().Format(time.RFC3339Nano))
+		childPath := parentPath + "/🍷"
+
+		legacy := &Album{
+			AlbumType:   AlbumFolder,
+			AlbumSlug:   txt.Slug(parentPath),
+			AlbumPath:   "",
+			AlbumFilter: `path:"` + parentPath + `" public:true`,
+			CreatedAt:   Now(),
+			UpdatedAt:   Now(),
+		}
+		legacy.SetTitle("Legacy Folder")
+
+		if err := legacy.Create(); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Cleanup(func() {
+			_ = legacy.DeletePermanently()
+		})
+
+		album := FindFolderAlbum(childPath)
+		if album == nil {
+			t.Fatal("expected legacy album")
+		}
+
+		assert.Equal(t, legacy.ID, album.ID)
 	})
 }
 
@@ -1315,17 +1365,17 @@ func TestAlbum_RemovePhotos(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		first_photo_updatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
-		second_photo_updatedAt := strings.Split(entries[1].UpdatedAt.String(), ".")[0]
-		album_updatedAt := strings.Split(a.UpdatedAt.String(), ".")[0]
+		firstPhotoUpdatedAt := strings.Split(entries[0].UpdatedAt.String(), ".")[0]
+		secondPhotoUpdatedAt := strings.Split(entries[1].UpdatedAt.String(), ".")[0]
+		albumUpdatedAt := strings.Split(a.UpdatedAt.String(), ".")[0]
 
 		assert.Truef(
-			t, first_photo_updatedAt <= album_updatedAt,
+			t, firstPhotoUpdatedAt <= albumUpdatedAt,
 			"Expected the UpdatedAt field of an album to be updated when"+
 				" photos are removed",
 		)
 		assert.Truef(
-			t, second_photo_updatedAt <= album_updatedAt,
+			t, secondPhotoUpdatedAt <= albumUpdatedAt,
 			"Expected the UpdatedAt field of an album to be updated when"+
 				" photos are removed",
 		)

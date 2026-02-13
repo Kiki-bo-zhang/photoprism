@@ -66,7 +66,8 @@ func TestLabel_SaveForm(t *testing.T) {
 
 func TestFlushLabelCache(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		FlushLabelCache()
+		require.NotPanics(t, func() { FlushLabelCache() })
+		assert.Equal(t, 0, labelCache.ItemCount())
 	})
 }
 
@@ -319,6 +320,9 @@ func TestLabel_Delete(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		label := NewLabel("LabelToBeDeleted", 5)
 		err := label.Save()
+		if err != nil {
+			t.Fatal(err)
+		}
 		assert.False(t, label.Deleted())
 
 		var labels Labels

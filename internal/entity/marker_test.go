@@ -1,13 +1,16 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/photoprism/photoprism/internal/form"
 	"github.com/photoprism/photoprism/internal/thumb/crop"
+	"github.com/photoprism/photoprism/pkg/rnd"
 )
 
 var testArea = crop.Area{
@@ -413,6 +416,36 @@ func TestMarker_ClearFace(t *testing.T) {
 		assert.Empty(t, m.FaceID)
 		assert.NotEmpty(t, m.MatchedAt)
 	})
+	t.Run("ReturnsUpdateError", func(t *testing.T) {
+		Db().AddError(errors.New("Force Gorm To Return Error"))
+		t.Cleanup(func() {
+			Db().Error = nil
+		})
+
+		m := Marker{
+			FaceID:    "FACE-CLEAR-ERR-1",
+			SubjSrc:   SrcAuto,
+			MarkerUID: rnd.GenerateUID('m'),
+		}
+
+		updated, err := m.ClearFace()
+		assert.True(t, updated)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Force Gorm To Return Error")
+
+		Db().AddError(errors.New("Force Gorm To Return Error"))
+		m = Marker{
+			FaceID:    "FACE-CLEAR-ERR-2",
+			SubjSrc:   SrcBatch,
+			MarkerUID: rnd.GenerateUID('m'),
+		}
+
+		updated, err = m.ClearFace()
+		assert.True(t, updated)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Force Gorm To Return Error")
+
+	})
 }
 
 func TestMarker_SyncSubject(t *testing.T) {
@@ -423,6 +456,27 @@ func TestMarker_SyncSubject(t *testing.T) {
 	t.Run("SubjectIsNil", func(t *testing.T) {
 		m := Marker{MarkerType: MarkerFace, subject: nil}
 		assert.Nil(t, m.SyncSubject(false))
+	})
+	t.Run("UpdateKnownFaceError", func(t *testing.T) {
+		Db().AddError(errors.New("Force Gorm To Return Error"))
+		t.Cleanup(func() {
+			Db().Error = nil
+		})
+
+		subjUID := "jsyncsubjecterror123"
+		m := Marker{
+			MarkerType: MarkerFace,
+			FaceID:     "FACE-SYNC-ERR-1",
+			SubjUID:    subjUID,
+			SubjSrc:    SrcManual,
+			subject: &Subject{
+				SubjUID: subjUID,
+			},
+		}
+
+		err := m.SyncSubject(false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "update known face")
 	})
 }
 
