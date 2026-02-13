@@ -201,10 +201,6 @@ require (
 	golang.org/x/arch v0.23.0 // indirect
 )
 
-require (
-	github.com/emersion/go-webdav v0.7.0
-	github.com/mattn/go-runewidth v0.0.19 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
-)
+require github.com/emersion/go-webdav v0.7.0
 
 go 1.24.10
