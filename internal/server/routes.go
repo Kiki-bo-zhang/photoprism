@@ -132,6 +132,11 @@ func registerRoutes(router *gin.Engine, conf *config.Config) {
 	api.PhotoPrimary(APIv1)
 	api.PhotoUnstack(APIv1)
 
+	// Photo Comments.
+	api.GetPhotoComments(APIv1)
+	api.AddPhotoComment(APIv1)
+	api.DeletePhotoComment(APIv1)
+
 	// Photo Albums.
 	api.SearchAlbums(APIv1)
 	api.GetAlbum(APIv1)
